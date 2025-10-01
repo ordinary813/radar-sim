@@ -3,8 +3,6 @@ project(RadarSim)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(radar_sim
-    src/main.cpp
-    src/Radar.cpp
-    src/Body.cpp
-)
+file(GLOB SOURCES "src/*.cpp")
+
+add_executable(radar_sim ${SOURCES})
