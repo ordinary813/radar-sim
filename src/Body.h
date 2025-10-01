@@ -9,6 +9,7 @@ public:
     Body(std::vector<float> pos, std::vector<float> vel);
 
     void update(float dt);
+    void update(float dt, std::vector<float> accel);
 
     std::vector<float> get_pos() const { return pos; }
     std::vector<float> get_vel() const { return vel; }

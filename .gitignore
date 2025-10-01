@@ -42,3 +42,14 @@
 
 build/
 .vscode/
+bin/
+
+# Data files
+data/*.csv
+data/*.txt
+
+# Python
+__pycache__/
+*.pyc
+scripts/__pycache__/
+myenv/

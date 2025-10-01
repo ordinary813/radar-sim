@@ -15,6 +15,15 @@ Body::Body(std::vector<float> pos, std::vector<float> vel) {
 
 void Body::update(float dt)
 {
-    pos[0] += vel[0] * dt + accel[0] / 2.0f * std::pow(dt, 2);
-    pos[1] += vel[1] * dt + accel[1] / 2.0f * std::pow(dt, 2);
+    vel[0] += accel[0] * dt;
+    vel[1] += accel[1] * dt;
+
+    pos[0] += vel[0] * dt;
+    pos[1] += vel[1] * dt;
+}
+
+void Body::update(float dt, std::vector<float> accel)
+{
+    this->accel = accel;
+    Body::update(dt);
 }
