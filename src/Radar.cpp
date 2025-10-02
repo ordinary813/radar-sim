@@ -51,8 +51,8 @@ float Radar::calculateVelocity(const Body &target) const
 bool Radar::shouldDetect(float distance)
 {
     // reduce probability  the longer the range, based on sigmoid
-    float prob = detection_prob * (2 / 1 + std::pow(M_E, distance * 0.0001));
-    return (distance < max_range) && (rand() % 100 < detection_prob);
+    float prob = detection_prob * (2 / (1 + std::pow(M_E, distance * 0.0001)));
+    return (distance < max_range) && (rand() % 100 < detection_prob * 100);
 }
 
 Detection Radar::scan(const Body &target, int target_id, float current_time)
