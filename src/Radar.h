@@ -31,7 +31,7 @@ private:
     // Randomness helpers
     std::default_random_engine generator;
     std::normal_distribution<float> norm_dist;
-    std::uniform_int_distribution<float> uniform_dist;
+    std::uniform_real_distribution<float> uniform_dist;
 
     // Helper methods
     float calculateDistance(const Body& target) const;

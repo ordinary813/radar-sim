@@ -12,7 +12,8 @@ Radar::Radar(std::vector<float> pos, float max_range, float noise_std)
       detection_prob(0.95f),
       generator(std::random_device{}()),
       norm_dist(0.0f, 1.0f),
-      uniform_dist(0.0f, 1.0f) {}
+      uniform_dist(0.0f, 1.0f) 
+{}
 
 float Radar::calculateDistance(const Body &target) const
 {
