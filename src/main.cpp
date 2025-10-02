@@ -21,15 +21,15 @@ sf::Vector2f worldToScreen(float x, float y, float screenSize, float worldSize)
 
 void drawGrid(sf::RenderWindow &window, float screenSize, float worldSize, float spacing)
 {
-    for (float i = -worldSize / 2; i <= worldSize / 2; i += spacing)
+    for (float i = -worldSize * 1000; i <= worldSize * 1000; i += spacing)
     {
         sf::Color color = (i == 0) ? sf::Color::White : sf::Color(50, 50, 50);
         sf::Vertex vLine[] = {
-            sf::Vertex(worldToScreen(i, -worldSize / 2, screenSize, worldSize), color),
-            sf::Vertex(worldToScreen(i, worldSize / 2, screenSize, worldSize), color)};
+            sf::Vertex(worldToScreen(i, -worldSize * 1000, screenSize, worldSize), color),
+            sf::Vertex(worldToScreen(i, worldSize * 1000, screenSize, worldSize), color)};
         sf::Vertex hLine[] = {
-            sf::Vertex(worldToScreen(-worldSize / 2, i, screenSize, worldSize), color),
-            sf::Vertex(worldToScreen(worldSize / 2, i, screenSize, worldSize), color)};
+            sf::Vertex(worldToScreen(-worldSize * 1000, i, screenSize, worldSize), color),
+            sf::Vertex(worldToScreen(worldSize * 1000, i, screenSize, worldSize), color)};
         window.draw(vLine, 2, sf::Lines);
         window.draw(hLine, 2, sf::Lines);
     }
@@ -60,7 +60,7 @@ void drawRadar(sf::RenderWindow &window, const Radar &radar, float screenSize, f
 
 void drawTarget(sf::RenderWindow &window, const Body &target, bool detected,
                 const sf::Vector2f &radarPos, float screenSize, float worldSize,
-                const vector<sf::Vector2f> &trail, sf::Color color)
+                const vector<sf::Vector2f> &trail, sf::Color color, const sf::Font &font)
 {
     auto pos = target.get_pos();
     sf::Vector2f screenPos = worldToScreen(pos[0], pos[1], screenSize, worldSize);
@@ -92,10 +92,42 @@ void drawTarget(sf::RenderWindow &window, const Body &target, bool detected,
     sf::CircleShape dot(8);
     dot.setOrigin(8, 8);
     dot.setPosition(screenPos);
-    dot.setFillColor(detected ? sf::Color(0, 255, 0) : color);
+    dot.setFillColor(color);
     dot.setOutlineColor(sf::Color::White);
     dot.setOutlineThickness(2);
     window.draw(dot);
+
+    sf::Text velocityText;
+    velocityText.setFont(font);
+    velocityText.setCharacterSize(12);
+    velocityText.setFillColor(sf::Color::White);
+
+    sf::Text accelerationText;
+    accelerationText.setFont(font);
+    accelerationText.setCharacterSize(12);
+    accelerationText.setFillColor(sf::Color::White);
+
+    auto vel = target.get_vel();
+    std::stringstream velStream;
+    velStream.precision(2);
+    velStream << std::fixed << "Vel: (" << vel[0] << ", " << vel[1] << ")";
+    velocityText.setString(velStream.str());
+
+    auto acc = target.get_accel();
+    std::stringstream accStream;
+    accStream.precision(2);
+    accStream << std::fixed << "Acc: (" << acc[0] << ", " << acc[1] << ")";
+    accelerationText.setString(accStream.str());
+
+    velocityText.setPosition(screenPos.x + 12, screenPos.y - 12);
+    accelerationText.setPosition(screenPos.x + 12, screenPos.y + 4);
+
+    window.draw(velocityText);
+    window.draw(accelerationText);
+}
+
+void drawRadarScan(sf::RenderWindow &window, const Radar &radar, float screenSize, float worldSize){
+
 }
 
 int main()
@@ -112,7 +144,7 @@ int main()
 
     // Window setup
     const float SCREEN_SIZE = 800.0f;
-    const float WORLD_SIZE = 120.0f;
+    const float WORLD_SIZE = 360.0f;
     const float GRID_SPACING = 10.0f;
 
     sf::RenderWindow window(sf::VideoMode(SCREEN_SIZE, SCREEN_SIZE), "Radar Simulation");
@@ -143,14 +175,12 @@ int main()
 
     vector<Body> targets;
     targets.push_back(Body({0, 0}, {5, 5}));
-    targets.push_back(Body({40, 40}, {-2, -3}));
-    targets.push_back(Body({-20, 45}, {3, -3}));
+    targets.push_back(Body({40, 40}, {-2, -3}, {1, 1}));
+    targets.push_back(Body({-20, 45}, {3, -3}, {-1, 2}));
 
     vector<sf::Color> colors = {
         sf::Color::Red,
-        sf::Color::Green,
-        sf::Color::Yellow
-    };
+        sf::Color::Green};
 
     vector<vector<sf::Vector2f>> trails(targets.size());
     vector<bool> isDetected(targets.size(), false);
@@ -159,23 +189,32 @@ int main()
     auto radar_pos = radar.get_pos();
     sf::Vector2f radarScreenPos = worldToScreen(radar_pos[0], radar_pos[1], SCREEN_SIZE, WORLD_SIZE);
 
+    bool isDragging = false;
+    sf::Vector2i previousMousePosition;
+
     ofstream traj_file(data_dir / "trajectory.csv");
     ofstream detect_file(data_dir / "detections.csv");
     traj_file << "time,target_id,x,y,vx,vy\n";
     detect_file << "time,target_id,detected,distance,bearing,radial_velocity,actual_distance\n";
 
-
     cout << "Simulation started. Press SPACE to pause, R to reset, ESC to quit.\n";
 
-    while (window.isOpen() && sim_time < 60.0f) {
+    while (window.isOpen() && sim_time < 60.0f)
+    {
         // Events
         sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
-            if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::Space) isPaused = !isPaused;
-                if (event.key.code == sf::Keyboard::Escape) window.close();
-                if (event.key.code == sf::Keyboard::R) {
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+            if (event.type == sf::Event::KeyPressed)
+            {
+                if (event.key.code == sf::Keyboard::Space)
+                    isPaused = !isPaused;
+                if (event.key.code == sf::Keyboard::Escape)
+                    window.close();
+                if (event.key.code == sf::Keyboard::R)
+                {
                     // Reset
                     sim_time = 0.0f;
                     next_scan_time = 0.0f;
@@ -184,96 +223,141 @@ int main()
                     targets.push_back(Body({0, 0}, {5, 5}));
                     targets.push_back(Body({40, 40}, {-2, -3}));
                     targets.push_back(Body({-20, 45}, {3, -3}));
-                    for (auto& trail : trails) trail.clear();
+                    for (auto &trail : trails)
+                        trail.clear();
+                }
+            }
+            if (event.type == sf::Event::MouseButtonPressed)
+            {
+                if (event.mouseButton.button == sf::Mouse::Left)
+                {
+                    isDragging = true;
+                    previousMousePosition = sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
+                }
+            }
+            if (event.type == sf::Event::MouseButtonReleased)
+            {
+                if (event.mouseButton.button == sf::Mouse::Left)
+                {
+                    isDragging = false;
+                }
+            }
+            if (event.type == sf::Event::MouseMoved)
+            {
+                if (isDragging)
+                {
+                    sf::Vector2i currentMousePosition = sf::Vector2i(event.mouseMove.x, event.mouseMove.y);
+                    sf::Vector2f delta = window.mapPixelToCoords(previousMousePosition) - window.mapPixelToCoords(currentMousePosition);
+                    ;
+                    sf::View view = window.getView();
+                    view.move(delta);
+                    window.setView(view);
+
+                    previousMousePosition = currentMousePosition;
                 }
             }
         }
-        
+
         // Update simulation
-        if (!isPaused) {
+        if (!isPaused)
+        {
             // Update all targets
-            for (auto& target : targets) {
+            for (auto &target : targets)
+            {
                 target.update(dt);
             }
-            
+
             // Add to trails
-            for (size_t i = 0; i < targets.size(); i++) {
+            for (size_t i = 0; i < targets.size(); i++)
+            {
                 auto pos = targets[i].get_pos();
                 sf::Vector2f screenPos = worldToScreen(pos[0], pos[1], SCREEN_SIZE, WORLD_SIZE);
                 trails[i].push_back(screenPos);
-                if (trails[i].size() > 500) trails[i].erase(trails[i].begin());
+                if (trails[i].size() > 500)
+                    trails[i].erase(trails[i].begin());
             }
-            
+
             sim_time += dt;
-            
+
             // Log trajectory data at intervals
-            if (sim_time >= next_log_time) {
-                for (size_t i = 0; i < targets.size(); i++) {
+            if (sim_time >= next_log_time)
+            {
+                for (size_t i = 0; i < targets.size(); i++)
+                {
                     auto pos = targets[i].get_pos();
                     auto vel = targets[i].get_vel();
                     traj_file << sim_time << "," << i << ","
-                             << pos[0] << "," << pos[1] << ","
-                             << vel[0] << "," << vel[1] << "\n";
+                              << pos[0] << "," << pos[1] << ","
+                              << vel[0] << "," << vel[1] << "\n";
                 }
                 next_log_time += log_interval;
             }
-            
+
             // Radar scan
-            if (sim_time >= next_scan_time) {
+            if (sim_time >= next_scan_time)
+            {
                 cout << "\n=== Scan at t=" << fixed << setprecision(1) << sim_time << "s ===\n";
-                
+
                 auto detections = radar.scan(targets, sim_time);
                 cout << "Detected " << detections.size() << " targets.\n";
-                
+
                 // Update detection status
                 fill(isDetected.begin(), isDetected.end(), false);
-                
+
                 // Log detections
-                for (const auto& det : detections) {
+                for (const auto &det : detections)
+                {
                     auto tgt_pos = targets[det.target_id].get_pos();
                     float dx = tgt_pos[0] - radar_pos[0];
                     float dy = tgt_pos[1] - radar_pos[1];
                     float true_distance = sqrt(dx * dx + dy * dy);
-                    
+
                     detect_file << det.timestamp << "," << det.target_id << ",1,"
-                               << det.distance << "," << det.azimuth << ","
-                               << det.radial_velocity << "," << true_distance << "\n";
-                    
+                                << det.distance << "," << det.azimuth << ","
+                                << det.radial_velocity << "," << true_distance << "\n";
+
                     cout << "  Target " << det.target_id
                          << ": Distance=" << det.distance << "m"
                          << ", Bearing=" << det.azimuth << "°"
                          << ", Velocity=" << det.radial_velocity << "m/s\n";
-                    
+
                     isDetected[det.target_id] = true;
                 }
-                
+
                 // Log misses
-                for (size_t i = 0; i < targets.size(); i++) {
-                    if (!isDetected[i]) {
+                for (size_t i = 0; i < targets.size(); i++)
+                {
+                    if (!isDetected[i])
+                    {
                         detect_file << sim_time << "," << i << ",0,0,0,0,0\n";
                     }
                 }
-                
+
                 next_scan_time += scan_interval;
             }
         }
-        
+
         // Render
         window.clear(sf::Color::Black);
         drawGrid(window, SCREEN_SIZE, WORLD_SIZE, GRID_SPACING);
         drawRadar(window, radar, SCREEN_SIZE, WORLD_SIZE);
-        
-        for (size_t i = 0; i < targets.size(); i++) {
+
+        for (size_t i = 0; i < targets.size(); i++)
+        {
             drawTarget(window, targets[i], isDetected[i], radarScreenPos,
-                      SCREEN_SIZE, WORLD_SIZE, trails[i], colors[i]);
+                       SCREEN_SIZE, WORLD_SIZE, trails[i],
+                       isDetected[i] ? colors[1] : colors[0],
+                       font);
         }
-        
+
         // Text overlay
-        if (fontLoaded) {
+        if (fontLoaded)
+        {
             stringstream ss;
             ss << fixed << setprecision(1) << "Time: " << sim_time << "s / 60s";
-            if (isPaused) ss << " [PAUSED]";
-            
+            if (isPaused)
+                ss << " [PAUSED]";
+
             sf::Text text;
             text.setFont(font);
             text.setString(ss.str());
@@ -281,25 +365,26 @@ int main()
             text.setFillColor(sf::Color::White);
             text.setPosition(10, 10);
             window.draw(text);
-            
+
             int detCount = 0;
-            for (bool d : isDetected) if (d) detCount++;
-            
+            for (bool d : isDetected)
+                if (d)
+                    detCount++;
+
             text.setString("Detected: " + to_string(detCount) + "/" + to_string(targets.size()));
             text.setFillColor(sf::Color::Green);
             text.setPosition(10, 35);
             window.draw(text);
-            
+
             text.setString("SPACE: Pause  |  R: Reset  |  ESC: Quit");
             text.setCharacterSize(12);
             text.setFillColor(sf::Color(200, 200, 200));
             text.setPosition(10, SCREEN_SIZE - 20);
             window.draw(text);
         }
-        
+
         window.display();
     }
-
 
     traj_file.close();
     detect_file.close();
