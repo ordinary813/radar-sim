@@ -144,7 +144,7 @@ int main()
 
     // Window setup
     const float SCREEN_SIZE = 800.0f;
-    const float WORLD_SIZE = 360.0f;
+    const float WORLD_SIZE = 400.0f;
     const float GRID_SPACING = 10.0f;
 
     sf::RenderWindow window(sf::VideoMode(SCREEN_SIZE, SCREEN_SIZE), "Radar Simulation");
@@ -173,10 +173,11 @@ int main()
     float next_log_time = 0.0f;
     bool isPaused = false;
 
+    // CUSTOM TARGETS
     vector<Body> targets;
     targets.push_back(Body({0, 0}, {5, 5}));
     targets.push_back(Body({40, 40}, {-2, -3}, {1, 1}));
-    targets.push_back(Body({-20, 45}, {3, -3}, {-1, 2}));
+    targets.push_back(Body({-20, 45}, {3, -3}, {-1, 1}));
 
     vector<sf::Color> colors = {
         sf::Color::Red,
