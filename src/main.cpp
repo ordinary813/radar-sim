@@ -150,6 +150,9 @@ int main()
     sf::RenderWindow window(sf::VideoMode(SCREEN_SIZE, SCREEN_SIZE), "Radar Simulation");
     window.setFramerateLimit(60);
 
+    sf::View fixedView(sf::FloatRect(0, 0, SCREEN_SIZE, SCREEN_SIZE));
+    window.setView(fixedView);
+
     sf::Font font;
     vector<string> fontPaths = {
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -175,9 +178,9 @@ int main()
 
     // CUSTOM TARGETS
     vector<Body> targets;
-    targets.push_back(Body({0, 0}, {5, 5}));
-    targets.push_back(Body({40, 40}, {-2, -3}, {1, 1}));
-    targets.push_back(Body({-20, 45}, {3, -3}, {-1, 1}));
+    targets.push_back(Body({0, 25}, {0, 0}));
+    // targets.push_back(Body({40, 40}, {-2, -3}, {1, 1}));
+    // targets.push_back(Body({-20, 45}, {3, -3}, {-1, 1}));
 
     vector<sf::Color> colors = {
         sf::Color::Red,
@@ -256,6 +259,12 @@ int main()
 
                     previousMousePosition = currentMousePosition;
                 }
+            }
+
+            if (event.type == sf::Event::Resized)
+            {
+                sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+                window.setView(sf::View(visibleArea));
             }
         }
 
@@ -354,6 +363,7 @@ int main()
         // Text overlay
         if (fontLoaded)
         {
+            //window.setView(window.getDefaultView()); 
             stringstream ss;
             ss << fixed << setprecision(1) << "Time: " << sim_time << "s / 60s";
             if (isPaused)
@@ -380,7 +390,7 @@ int main()
             text.setString("SPACE: Pause  |  R: Reset  |  ESC: Quit");
             text.setCharacterSize(12);
             text.setFillColor(sf::Color(200, 200, 200));
-            text.setPosition(10, SCREEN_SIZE - 20);
+            text.setPosition(10, window.getSize().y - 20);
             window.draw(text);
         }
 

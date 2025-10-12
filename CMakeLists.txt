@@ -4,7 +4,13 @@ project(RadarSim)
 set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB SOURCES "src/*.cpp")
+
 add_executable(radar_sim ${SOURCES})
+include_directories(include)
 
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 target_link_libraries(radar_sim sfml-graphics sfml-window sfml-system)
+
+enable_testing()
+add_executable(test_radar tests/test_radar.cpp src/Radar.cpp src/Body.cpp)
+add_test(NAME RadarTests COMMAND test_radar)

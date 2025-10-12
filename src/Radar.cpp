@@ -17,25 +17,28 @@ Radar::Radar(std::vector<float> pos, float max_range, float noise_std)
 
 float Radar::calculateDistance(const Body &target) const
 {
-    float dx = pos[0] - target.get_pos()[0];
-    float dy = pos[1] - target.get_pos()[1];
+    float dx = target.get_pos()[0] - pos[0];
+    float dy = target.get_pos()[1] - pos[1];
     return std::sqrt(dx * dx + dy * dy);
 }
 
 float Radar::calculateAzimuth(const Body &target) const
 {
-    float dx = pos[0] - target.get_pos()[0];
-    float dy = pos[1] - target.get_pos()[1];
-    float rad = std::atan2(dx, dy);
-    return rad * 180.0f / M_PI;
+    float dx = target.get_pos()[0] - pos[0];
+    float dy = target.get_pos()[1] - pos[1];
+    float rad = std::atan2(dy, dx);
+    float deg = rad * 180.0f / M_PI;
+    if(deg < 0.0f && deg > -180.0f)
+        deg += 360;
+    return deg;
 }
 
 float Radar::calculateVelocity(const Body &target) const
 {
     auto vel = target.get_vel();
 
-    float dx = pos[0] - target.get_pos()[0];
-    float dy = pos[1] - target.get_pos()[1];
+    float dx = target.get_pos()[0] - pos[0];;
+    float dy = target.get_pos()[1] - pos[1];;
     float distance = std::sqrt(dx * dx + dy * dy);
 
     if (distance < 0.001f)

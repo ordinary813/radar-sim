@@ -33,11 +33,6 @@ private:
     std::normal_distribution<float> norm_dist;
     std::uniform_real_distribution<float> uniform_dist;
 
-    // Helper methods
-    float calculateDistance(const Body& target) const;
-    float calculateAzimuth(const Body& target) const;
-    float calculateVelocity(const Body& target) const;
-
     // Decides if the target is detected, considering detection probability and distance
     bool shouldDetect(float distance);
 
@@ -46,6 +41,11 @@ public:
 
     Detection scan(const Body& target, int target_id, float current_time);
     std::vector<Detection> scan(const std::vector<Body>& targets, float current_time);
+
+    // Calculation functions
+    float calculateDistance(const Body& target) const;
+    float calculateAzimuth(const Body& target) const;
+    float calculateVelocity(const Body& target) const;
 
 
     std::vector<float> get_pos() const { return pos; }
