@@ -120,19 +120,17 @@ int main()
         }
     }
 
-    
     // Window setup
     const float SCREEN_SIZE = 800.0f;
     const float WORLD_SIZE = 400.0f;
     const float GRID_SPACING = 10.0f;
     
-    Renderer renderer(SCREEN_SIZE, SCREEN_SIZE, WORLD_SIZE);
-
+    float dt = 0.016f;
     float scan_interval = 1.0f;
     float next_scan_time = 0.0f;
-    float log_interval = 0.1f;
-    float next_log_time = 0.0f;
-
+    
+    Renderer renderer(SCREEN_SIZE, SCREEN_SIZE, WORLD_SIZE, dt);
+    
     // Targets
     vector<Body> targets;
     targets.push_back(Body({0, -25}));
@@ -142,9 +140,6 @@ int main()
     Radar radar({0, 0}, 50.0f, 2.0f);
     auto radar_pos = radar.get_pos();
     sf::Vector2f radarScreenPos = worldToScreen(radar_pos[0], radar_pos[1], SCREEN_SIZE, WORLD_SIZE);
-
-    bool isDragging = false;
-    sf::Vector2i previousMousePosition;
 
     ofstream traj_file(data_dir / "trajectory.csv");
     ofstream detect_file(data_dir / "detections.csv");
@@ -157,22 +152,20 @@ int main()
     {
         // Events
         sf::Event event;
-        while (window.pollEvent(event))
+        while (renderer.processEvents(event))
         {
             if (event.type == sf::Event::Closed)
-                window.close();
+                renderer.close();
             if (event.type == sf::Event::KeyPressed)
             {
                 if (event.key.code == sf::Keyboard::Space)
-                    isPaused = !isPaused;
+                    renderer.flipPause();
                 if (event.key.code == sf::Keyboard::Escape)
-                    window.close();
+                    renderer.close();
                 if (event.key.code == sf::Keyboard::R)
                 {
-                    // Reset
-                    sim_time = 0.0f;
+                    renderer.reset();
                     next_scan_time = 0.0f;
-                    next_log_time = 0.0f;
                     targets.clear();
                     targets.push_back(Body({0, 0}, {5, 5}));
                 }
@@ -181,41 +174,40 @@ int main()
             {
                 if (event.mouseButton.button == sf::Mouse::Left)
                 {
-                    isDragging = true;
-                    previousMousePosition = sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
+                    renderer.setMouseDragging(true, new sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
                 }
             }
             if (event.type == sf::Event::MouseButtonReleased)
             {
                 if (event.mouseButton.button == sf::Mouse::Left)
                 {
-                    isDragging = false;
+                    renderer.setMouseDragging(false);
                 }
             }
             if (event.type == sf::Event::MouseMoved)
             {
-                if (isDragging)
+                if (renderer.isDragging)
                 {
-                    sf::Vector2i currentMousePosition = sf::Vector2i(event.mouseMove.x, event.mouseMove.y);
-                    sf::Vector2f delta = window.mapPixelToCoords(previousMousePosition) - window.mapPixelToCoords(currentMousePosition);
-                    ;
-                    sf::View view = window.getView();
-                    view.move(delta);
-                    window.setView(view);
-
-                    previousMousePosition = currentMousePosition;
+                    renderer.updateView(
+                        ViewAction::DRAG,
+                        new sf::Vector2i(event.mouseMove.x, event.mouseMove.y),
+                        &event
+                    );
                 }
             }
 
             if (event.type == sf::Event::Resized)
             {
-                sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
-                window.setView(sf::View(visibleArea));
+                renderer.updateView(
+                        ViewAction::RESIZE,
+                        new sf::Vector2i(event.mouseMove.x, event.mouseMove.y),
+                        &event
+                    );
             }
         }
 
         // Update simulation
-        if (!isPaused)
+        if (!renderer.isPaused)
         {
             // Update all targets
             for (auto &target : targets)
@@ -223,21 +215,7 @@ int main()
                 target.update(dt);
             }
 
-            sim_time += dt;
-
-            // Log trajectory data at intervals
-            if (sim_time >= next_log_time)
-            {
-                for (size_t i = 0; i < targets.size(); i++)
-                {
-                    auto pos = targets[i].get_pos();
-                    auto vel = targets[i].get_vel();
-                    traj_file << sim_time << "," << i << ","
-                              << pos[0] << "," << pos[1] << ","
-                              << vel[0] << "," << vel[1] << "\n";
-                }
-                next_log_time += log_interval;
-            }
+            renderer.advanceSimTime();
 
             // Radar scan
             if (sim_time >= next_scan_time)
@@ -283,7 +261,8 @@ int main()
             }
         }
 
-        // Render
+        renderer.render(radar);
+        //
         window.clear(sf::Color::Black);
         drawGrid(window, SCREEN_SIZE, WORLD_SIZE, GRID_SPACING);
         drawRadar(window, radar, SCREEN_SIZE, WORLD_SIZE);
@@ -299,7 +278,6 @@ int main()
         // Text overlay
         if (fontLoaded)
         {
-            //window.setView(window.getDefaultView()); 
             stringstream ss;
             ss << fixed << setprecision(1) << "Time: " << sim_time << "s / 60s";
             if (isPaused)
@@ -330,7 +308,8 @@ int main()
             window.draw(text);
         }
 
-        window.display();
+        renderer.display();
+        //
     }
 
     traj_file.close();

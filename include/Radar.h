@@ -1,9 +1,8 @@
 #ifndef RADAR_H
 #define RADAR_H
 
-#include <vector>
-
 #include "Body.h"
+
 #include <array>
 #include <vector>
 #include <random>

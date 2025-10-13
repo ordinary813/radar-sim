@@ -1,11 +1,13 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#include "Radar.h"
+#include "Body.h"
+#include "constraints.h"
+
 #include <vector>
 #include <ostream>
 #include <SFML/Graphics.hpp>
-#include "Radar.h"
-#include "Body.h"
 
 class Renderer
 {
@@ -13,6 +15,7 @@ public:
     Renderer(float screen_height,
              float screen_width,
              float world_size,
+             float dt = 0.016f,
              float sim_duration = 60.0f,
              const float grid_spacing = 10.0f);
 
@@ -27,7 +30,26 @@ public:
     float get_screen_width();
 
     bool isRunning();
-    void processEvents();
+    bool processEvents(sf::Event &event);
+
+    void close();
+    void reset();
+    void render(const Radar &radar, vector<Body> &targets, vector<bool> &detected);
+
+    void flipPause();
+    void setMouseDragging(
+        bool state,
+        sf::Vector2i *previousMousePosition = nullptr);
+
+    void updateView(
+        ViewAction action,
+        sf::Vector2i *currentMousePosition = nullptr,
+        const sf::Event *event);
+
+    void advanceSimTime();
+
+    bool isDragging;
+    bool isPaused;
 
 private:
     sf::RenderWindow window;
@@ -42,7 +64,9 @@ private:
     float dt;
     float sim_time;
     float sim_duration;
-    bool isPaused;
+
+    sf::Vector2i currentMousePosition;
+    sf::Vector2i previousMousePosition;
 };
 
 #endif
