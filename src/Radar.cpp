@@ -3,14 +3,16 @@
 #include <cmath>
 #include <random>
 
-Radar::Radar(std::vector<float> pos, float max_range, float noise_std)
+using namespace std;
+
+Radar::Radar(vector<float> pos, float max_range, float noise_std)
     : pos(pos),
       max_range(max_range),
       distance_noise_std(noise_std),
       azimuth_noise_std(1.0f),
       velocity_noise_std(0.5f),
       detection_prob(0.95f),
-      generator(std::random_device{}()),
+      generator(random_device{}()),
       norm_dist(0.0f, 1.0f),
       uniform_dist(0.0f, 1.0f) 
 {}
@@ -19,14 +21,14 @@ float Radar::calculateDistance(const Body &target) const
 {
     float dx = target.get_pos()[0] - pos[0];
     float dy = target.get_pos()[1] - pos[1];
-    return std::sqrt(dx * dx + dy * dy);
+    return sqrt(dx * dx + dy * dy);
 }
 
 float Radar::calculateAzimuth(const Body &target) const
 {
     float dx = target.get_pos()[0] - pos[0];
     float dy = target.get_pos()[1] - pos[1];
-    float rad = std::atan2(dy, dx);
+    float rad = atan2(dy, dx);
     float deg = rad * 180.0f / M_PI;
     if(deg < 0.0f && deg > -180.0f)
         deg += 360;
@@ -39,7 +41,7 @@ float Radar::calculateVelocity(const Body &target) const
 
     float dx = target.get_pos()[0] - pos[0];;
     float dy = target.get_pos()[1] - pos[1];;
-    float distance = std::sqrt(dx * dx + dy * dy);
+    float distance = sqrt(dx * dx + dy * dy);
 
     if (distance < 0.001f)
         return 0.0f;
@@ -54,7 +56,7 @@ float Radar::calculateVelocity(const Body &target) const
 bool Radar::shouldDetect(float distance)
 {
     // reduce probability  the longer the range, based on sigmoid
-    float prob = detection_prob * (2 / (1 + std::pow(M_E, distance * 0.0001)));
+    float prob = detection_prob * (2 / (1 + pow(M_E, distance * 0.0001)));
     return (distance < max_range) && (rand() % 100 < detection_prob * 100);
 }
 
@@ -87,9 +89,9 @@ Detection Radar::scan(const Body &target, int target_id, float current_time)
     return det;
 }
 
-std::vector<Detection> Radar::scan(const std::vector<Body> &targets, float current_time)
+vector<Detection> Radar::scan(const vector<Body> &targets, float current_time)
 {
-    std::vector<Detection> detections;
+    vector<Detection> detections;
 
     for (size_t i = 0; i < targets.size(); i++)
     {

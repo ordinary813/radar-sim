@@ -1,5 +1,6 @@
 #include "Body.h"
 #include "Radar.h"
+#include "Renderer.h"
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -51,8 +52,8 @@ void drawRadar(sf::RenderWindow &window, const Radar &radar, float screenSize, f
     window.draw(rangeCircle);
 
     // Radar dot
-    sf::CircleShape dot(6);
-    dot.setOrigin(6, 6);
+    sf::CircleShape dot(4);
+    dot.setOrigin(4, 4);
     dot.setPosition(pos);
     dot.setFillColor(sf::Color::Cyan);
     window.draw(dot);
@@ -60,33 +61,10 @@ void drawRadar(sf::RenderWindow &window, const Radar &radar, float screenSize, f
 
 void drawTarget(sf::RenderWindow &window, const Body &target, bool detected,
                 const sf::Vector2f &radarPos, float screenSize, float worldSize,
-                const vector<sf::Vector2f> &trail, sf::Color color, const sf::Font &font)
+                sf::Color color, const sf::Font &font)
 {
     auto pos = target.get_pos();
     sf::Vector2f screenPos = worldToScreen(pos[0], pos[1], screenSize, worldSize);
-
-    // Trail
-    if (trail.size() > 1)
-    {
-        sf::Color trailColor = color;
-        trailColor.a = 100;
-        for (size_t j = 1; j < trail.size(); j++)
-        {
-            sf::Vertex line[] = {
-                sf::Vertex(trail[j - 1], trailColor),
-                sf::Vertex(trail[j], trailColor)};
-            window.draw(line, 2, sf::Lines);
-        }
-    }
-
-    // Detection line
-    if (detected)
-    {
-        sf::Vertex line[] = {
-            sf::Vertex(radarPos, sf::Color(0, 255, 0, 150)),
-            sf::Vertex(screenPos, sf::Color(0, 255, 0, 150))};
-        window.draw(line, 2, sf::Lines);
-    }
 
     // Target dot
     sf::CircleShape dot(8);
@@ -142,51 +120,23 @@ int main()
         }
     }
 
+    
     // Window setup
     const float SCREEN_SIZE = 800.0f;
     const float WORLD_SIZE = 400.0f;
     const float GRID_SPACING = 10.0f;
+    
+    Renderer renderer(SCREEN_SIZE, SCREEN_SIZE, WORLD_SIZE);
 
-    sf::RenderWindow window(sf::VideoMode(SCREEN_SIZE, SCREEN_SIZE), "Radar Simulation");
-    window.setFramerateLimit(60);
-
-    sf::View fixedView(sf::FloatRect(0, 0, SCREEN_SIZE, SCREEN_SIZE));
-    window.setView(fixedView);
-
-    sf::Font font;
-    vector<string> fontPaths = {
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/System/Library/Fonts/Helvetica.ttc",
-        "C:\\Windows\\Fonts\\arial.ttf"};
-    bool fontLoaded = false;
-    for (const auto &path : fontPaths)
-    {
-        if (font.loadFromFile(path))
-        {
-            fontLoaded = true;
-            break;
-        }
-    }
-
-    float dt = 0.016;
-    float sim_time = 0.0f;
     float scan_interval = 1.0f;
     float next_scan_time = 0.0f;
     float log_interval = 0.1f;
     float next_log_time = 0.0f;
-    bool isPaused = false;
 
-    // CUSTOM TARGETS
+    // Targets
     vector<Body> targets;
-    targets.push_back(Body({0, 25}, {0, 0}));
-    // targets.push_back(Body({40, 40}, {-2, -3}, {1, 1}));
-    // targets.push_back(Body({-20, 45}, {3, -3}, {-1, 1}));
+    targets.push_back(Body({0, -25}));
 
-    vector<sf::Color> colors = {
-        sf::Color::Red,
-        sf::Color::Green};
-
-    vector<vector<sf::Vector2f>> trails(targets.size());
     vector<bool> isDetected(targets.size(), false);
 
     Radar radar({0, 0}, 50.0f, 2.0f);
@@ -203,7 +153,7 @@ int main()
 
     cout << "Simulation started. Press SPACE to pause, R to reset, ESC to quit.\n";
 
-    while (window.isOpen() && sim_time < 60.0f)
+    while (renderer.isRunning())
     {
         // Events
         sf::Event event;
@@ -225,10 +175,6 @@ int main()
                     next_log_time = 0.0f;
                     targets.clear();
                     targets.push_back(Body({0, 0}, {5, 5}));
-                    targets.push_back(Body({40, 40}, {-2, -3}));
-                    targets.push_back(Body({-20, 45}, {3, -3}));
-                    for (auto &trail : trails)
-                        trail.clear();
                 }
             }
             if (event.type == sf::Event::MouseButtonPressed)
@@ -275,16 +221,6 @@ int main()
             for (auto &target : targets)
             {
                 target.update(dt);
-            }
-
-            // Add to trails
-            for (size_t i = 0; i < targets.size(); i++)
-            {
-                auto pos = targets[i].get_pos();
-                sf::Vector2f screenPos = worldToScreen(pos[0], pos[1], SCREEN_SIZE, WORLD_SIZE);
-                trails[i].push_back(screenPos);
-                if (trails[i].size() > 500)
-                    trails[i].erase(trails[i].begin());
             }
 
             sim_time += dt;
@@ -355,7 +291,7 @@ int main()
         for (size_t i = 0; i < targets.size(); i++)
         {
             drawTarget(window, targets[i], isDetected[i], radarScreenPos,
-                       SCREEN_SIZE, WORLD_SIZE, trails[i],
+                       SCREEN_SIZE, WORLD_SIZE,
                        isDetected[i] ? colors[1] : colors[0],
                        font);
         }
