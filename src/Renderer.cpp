@@ -27,7 +27,7 @@ Renderer::Renderer(float screen_height,
       isDragging(false),
       currentMousePosition(sf::Vector2i(0, 0)),
       previousMousePosition(sf::Vector2i(0, 0)),
-      colors{sf::Color::Red, sf::Color::Green}
+      colors{sf::Color::Green, sf::Color::Red}
 {
     window.setFramerateLimit(60);
     if (!load_font())
@@ -55,18 +55,110 @@ bool Renderer::load_font()
     return fontLoaded;
 }
 
+sf::Vector2f Renderer::worldToScreen(float x, float y)
+{
+    float xScale = screen_width / world_size;
+    float yScale = screen_height / world_size;
+    return sf::Vector2f(
+        screen_width / 2 + x * xScale,              // Center of x axis + scaled x coordinate
+        screen_height / 2 - y * yScale);            // ...
+}
+
 void Renderer::draw_grid()
 {
+    for (float i = -world_size * 1000; i <= world_size * 1000; i += grid_spacing)
+    {
+        sf::Color color = (i == 0) ? sf::Color::White : sf::Color(50, 50, 50);
+        sf::Vertex vLine[] = {
+            sf::Vertex(worldToScreen(i, -world_size * 1000), color),
+            sf::Vertex(worldToScreen(i, world_size * 1000), color)};
+        sf::Vertex hLine[] = {
+            sf::Vertex(worldToScreen(-world_size * 1000, i), color),
+            sf::Vertex(worldToScreen(world_size * 1000, i), color)};
+        window.draw(vLine, 2, sf::Lines);
+        window.draw(hLine, 2, sf::Lines);
+    }
 }
 
 void Renderer::draw_radar(const Radar &radar)
 {
+    auto radar_pos = radar.get_pos();
+    sf::Vector2f pos = worldToScreen(radar_pos[0], radar_pos[1]);
+    float rangeRadius = radar.get_max_range();
+
+    float scaledRadius = rangeRadius * min(screen_width/world_size, screen_height/world_size);
+    sf::CircleShape rangeCircle(scaledRadius);
+    rangeCircle.setOrigin(scaledRadius, scaledRadius);
+    rangeCircle.setPosition(pos);
+    rangeCircle.setFillColor(sf::Color::Transparent);
+    rangeCircle.setOutlineColor(sf::Color(0, 255, 255, 80));
+    rangeCircle.setOutlineThickness(2);
+    window.draw(rangeCircle);
+
+    sf::CircleShape dot(4);
+    dot.setOrigin(4, 4);
+    dot.setPosition(pos);
+    dot.setFillColor(sf::Color::Green);
+    window.draw(dot);
 }
 
 void Renderer::draw_body(const Body &body,
-                         bool detected,
-                         const sf::Vector2f &radarPos)
+                         bool detected)
 {
+    auto pos = body.get_pos();
+    sf::Vector2f screenPos = worldToScreen(pos[0], pos[1]);
+
+    sf::Color color = detected ? colors[0] : colors[1];
+
+    sf::CircleShape dot(8);
+    dot.setOrigin(8, 8);
+    dot.setPosition(screenPos);
+    dot.setFillColor(color);
+    dot.setOutlineColor(sf::Color::White);
+    dot.setOutlineThickness(2);
+    window.draw(dot);
+
+    // Text overlay
+    sf::Text positionText;
+    positionText.setFont(font);
+    positionText.setCharacterSize(12);
+    positionText.setFillColor(sf::Color::White);
+
+    sf::Text velocityText;
+    velocityText.setFont(font);
+    velocityText.setCharacterSize(12);
+    velocityText.setFillColor(sf::Color::White);
+
+    sf::Text accelerationText;
+    accelerationText.setFont(font);
+    accelerationText.setCharacterSize(12);
+    accelerationText.setFillColor(sf::Color::White);
+
+    pos = body.get_pos();
+    std::stringstream posStream;
+    posStream.precision(1);
+    posStream << std::fixed << "Pos: (" << pos[0] << ", " << pos[1] << ")";
+    positionText.setString(posStream.str());
+
+    auto vel = body.get_vel();
+    std::stringstream velStream;
+    velStream.precision(1);
+    velStream << std::fixed << "Vel: (" << vel[0] << ", " << vel[1] << ")";
+    velocityText.setString(velStream.str());
+
+    auto acc = body.get_accel();
+    std::stringstream accStream;
+    accStream.precision(1);
+    accStream << std::fixed << "Acc: (" << acc[0] << ", " << acc[1] << ")";
+    accelerationText.setString(accStream.str());
+
+    positionText.setPosition(screenPos.x + 12, screenPos.y - 28);
+    velocityText.setPosition(screenPos.x + 12, screenPos.y - 12);
+    accelerationText.setPosition(screenPos.x + 12, screenPos.y + 4);
+
+    window.draw(positionText);
+    window.draw(velocityText);
+    window.draw(accelerationText);
 }
 
 float Renderer::get_screen_height() { return screen_height; }
@@ -96,11 +188,9 @@ void Renderer::render(const Radar &radar, vector<Body> &targets, vector<bool> &d
     draw_grid();
     draw_radar(radar);
 
-    sf::Vector2f radarScreenPos = worldToScreen(radar_pos[0], radar_pos[1], SCREEN_SIZE, WORLD_SIZE);
-
     for (size_t i = 0; i < targets.size(); i++)
     {
-        draw_body(targets[i], detected[i], radarScreenPos);
+        draw_body(targets[i], detected[i]);
     }
 
     // Text overlay
@@ -173,7 +263,8 @@ void Renderer::updateView(
     }
 }
 
-void Renderer::advanceSimTime()
+float Renderer::advanceSimTime()
 {
     sim_time += dt;
+    return sim_time;
 }

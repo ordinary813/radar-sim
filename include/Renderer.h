@@ -9,6 +9,8 @@
 #include <ostream>
 #include <SFML/Graphics.hpp>
 
+using namespace std;
+
 class Renderer
 {
 public:
@@ -20,11 +22,12 @@ public:
              const float grid_spacing = 10.0f);
 
     bool load_font();
+
+    sf::Vector2f worldToScreen( float x, float y);
     void draw_grid();
     void draw_radar(const Radar &radar);
     void draw_body(const Body &body,
-                   bool detected,
-                   const sf::Vector2f &radarPos);
+                   bool detected);
 
     float get_screen_height();
     float get_screen_width();
@@ -34,7 +37,10 @@ public:
 
     void close();
     void reset();
-    void render(const Radar &radar, vector<Body> &targets, vector<bool> &detected);
+    void render(
+        const Radar &radar, 
+        vector<Body> &targets, 
+        vector<bool> &detected);
 
     void flipPause();
     void setMouseDragging(
@@ -44,9 +50,9 @@ public:
     void updateView(
         ViewAction action,
         sf::Vector2i *currentMousePosition = nullptr,
-        const sf::Event *event);
+        const sf::Event *event = nullptr);
 
-    void advanceSimTime();
+    float advanceSimTime();
 
     bool isDragging;
     bool isPaused;
