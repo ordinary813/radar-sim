@@ -14,11 +14,6 @@
 
 using namespace std;
 
-void drawRadarScan(sf::RenderWindow &window, const Radar &radar, float screenSize, float worldSize)
-{
-
-}
-
 int main()
 {
     // Window setup

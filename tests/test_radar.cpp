@@ -36,7 +36,9 @@ int main()
     Body target3({-1, 0});
     Body target4({0, -1});
 
+    std::cout << "\e[1;93m";
     std::cout << "Unit Vectors Test" << std::endl;
+    std::cout << "\033[0m";
 
     float d = radar.calculateDistance(target1);
     float a = radar.calculateAzimuth(target1);
@@ -78,17 +80,15 @@ int main()
     check_equal(ss.str(), a, 270.0f);
     ss.str(""); ss.clear();
 
-    std::cout << "\033[32m";
-    std::cout << "Unit Vectors Test Success\n";
-    std::cout << "\033[0m";
-
     // Azimuth Test
     Body target5({1, 1});
     Body target6({-1, 1});
     Body target7({-1, -1});
     Body target8({1, -1});
 
+    std::cout << "\e[1;93m";
     std::cout << "Azimuth Test" << std::endl;
+    std::cout << "\033[0m";
 
     a = radar.calculateAzimuth(target5);
     check_equal("Target5 Azimuth", a, 45.0f);
@@ -102,12 +102,8 @@ int main()
     a = radar.calculateAzimuth(target8);
     check_equal("Target8 Azimuth", a, 315.0f);
 
-    std::cout << "\033[32m";
-    std::cout << "Azimuth Test Success\n";
-    std::cout << "\033[0m";
-
     std::cout << "\e[1;92m";
-    std::cout << "All tests passed!\n";
+    std::cout << "All tests were successful!\n";
     std::cout << "\033[0m";
     return 0;
 }

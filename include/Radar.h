@@ -22,10 +22,13 @@ class Radar
 private:
     std::vector<float> pos;
     float max_range;
+    float scan_angle;
     float distance_noise_std;
     float azimuth_noise_std;
     float velocity_noise_std;
     float detection_prob;
+    float scan_interval;
+    float beam_width;
 
     // Randomness helpers
     std::default_random_engine generator;
@@ -45,7 +48,6 @@ public:
     float calculateDistance(const Body& target) const;
     float calculateAzimuth(const Body& target) const;
     float calculateVelocity(const Body& target) const;
-
 
     std::vector<float> get_pos() const { return pos; }
     float get_max_range() const { return max_range; }
