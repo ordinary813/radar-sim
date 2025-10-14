@@ -33,7 +33,7 @@ int main()
 
     vector<bool> detected(targets.size(), false);
 
-    Radar radar({10, 0}, 100.0f, 2.0f);
+    Radar radar({0, 0}, 100.0f);
     auto radar_pos = radar.get_pos();
     sf::Vector2f radarScreenPos = renderer.worldToScreen(radar_pos[0], radar_pos[1]);
 
@@ -56,6 +56,7 @@ int main()
                 if (event.key.code == sf::Keyboard::R)
                 {
                     renderer.reset();
+                    radar.reset();
                     next_scan_time = 0.0f;
                     targets.clear();
                     targets.push_back(Body({0, 0}, {5, 5}));
@@ -105,37 +106,35 @@ int main()
             {
                 target.update(dt);
             }
+            radar.update(dt);
 
             float updated_sim_time = renderer.advanceSimTime();
 
-            // Radar scan
-            if (updated_sim_time >= next_scan_time)
+            cout << "\n=== Scan at t=" << fixed << setprecision(1) << updated_sim_time << "s ===\n";
+
+            auto detections = radar.scan(targets, updated_sim_time);
+            cout << "Detected " << detections.size() << " targets.\n";
+
+            // Update detection status
+            fill(detected.begin(), detected.end(), false);
+
+            for (const auto &det : detections)
             {
-                cout << "\n=== Scan at t=" << fixed << setprecision(1) << updated_sim_time << "s ===\n";
+                auto tgt_pos = targets[det.target_id].get_pos();
+                float dx = tgt_pos[0] - radar_pos[0];
+                float dy = tgt_pos[1] - radar_pos[1];
+                float true_distance = sqrt(dx * dx + dy * dy);
 
-                auto detections = radar.scan(targets, updated_sim_time);
-                cout << "Detected " << detections.size() << " targets.\n";
+                cout << "  Target " << det.target_id
+                        << ": Distance=" << det.distance << "m"
+                        << ", Bearing=" << det.azimuth << "°"
+                        << ", Velocity=" << det.radial_velocity << "m/s\n";
 
-                // Update detection status
-                fill(detected.begin(), detected.end(), false);
-
-                for (const auto &det : detections)
-                {
-                    auto tgt_pos = targets[det.target_id].get_pos();
-                    float dx = tgt_pos[0] - radar_pos[0];
-                    float dy = tgt_pos[1] - radar_pos[1];
-                    float true_distance = sqrt(dx * dx + dy * dy);
-
-                    cout << "  Target " << det.target_id
-                         << ": Distance=" << det.distance << "m"
-                         << ", Bearing=" << det.azimuth << "°"
-                         << ", Velocity=" << det.radial_velocity << "m/s\n";
-
-                    detected[det.target_id] = true;
-                }
-
-                next_scan_time += scan_interval;
+                detected[det.target_id] = true;
             }
+
+            next_scan_time += dt;
+            
         }
 
         renderer.render(radar, targets, detected);

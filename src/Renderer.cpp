@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 using namespace std;
 
@@ -60,8 +61,8 @@ sf::Vector2f Renderer::worldToScreen(float x, float y)
     float xScale = screen_width / world_size;
     float yScale = screen_height / world_size;
     return sf::Vector2f(
-        screen_width / 2 + x * xScale,              // Center of x axis + scaled x coordinate
-        screen_height / 2 - y * yScale);            // ...
+        screen_width / 2 + x * xScale,   // Center of x axis + scaled x coordinate
+        screen_height / 2 - y * yScale); // ...
 }
 
 void Renderer::draw_grid()
@@ -86,13 +87,13 @@ void Renderer::draw_radar(const Radar &radar)
     sf::Vector2f pos = worldToScreen(radar_pos[0], radar_pos[1]);
     float rangeRadius = radar.get_max_range();
 
-    float scaledRadius = rangeRadius * min(screen_width/world_size, screen_height/world_size);
+    float scaledRadius = rangeRadius * min(screen_width / world_size, screen_height / world_size);
     sf::CircleShape rangeCircle(scaledRadius);
     rangeCircle.setOrigin(scaledRadius, scaledRadius);
     rangeCircle.setPosition(pos);
     rangeCircle.setFillColor(sf::Color::Transparent);
-    rangeCircle.setOutlineColor(sf::Color(0, 255, 255, 80));
-    rangeCircle.setOutlineThickness(2);
+    rangeCircle.setOutlineColor(sf::Color(0, 255, 0, 127));
+    rangeCircle.setOutlineThickness(1);
     window.draw(rangeCircle);
 
     sf::CircleShape dot(4);
@@ -100,6 +101,36 @@ void Renderer::draw_radar(const Radar &radar)
     dot.setPosition(pos);
     dot.setFillColor(sf::Color::Green);
     window.draw(dot);
+
+    float radar_range = radar.get_max_range();
+
+    float downAngle = radar.getScanAngle() - radar.getBeamWidth() / 2;
+    if (downAngle >= 360.0f)
+        downAngle -= 360;
+    if (downAngle < 0)
+        downAngle += 360;
+    sf::Vector2f downWorld(radar_pos[0] + radar_range * cos(downAngle * M_PI / 180.0f),
+                           radar_pos[1] + radar_range * sin(downAngle * M_PI / 180.0f));
+    sf::Vector2f downPos = worldToScreen(downWorld.x, downWorld.y);
+    sf::Vertex downLine[] = {
+        sf::Vertex(pos, sf::Color(0, 255, 0, 127)),
+        sf::Vertex(downPos, sf::Color(0, 255, 0, 127))};
+
+    float upAngle = radar.getScanAngle() + radar.getBeamWidth() / 2;
+    if (upAngle >= 360.0f)
+        upAngle -= 360;
+    if (upAngle < 0)
+        upAngle += 360;
+
+    sf::Vector2f upWorld(radar_pos[0] + radar_range * cos(upAngle * M_PI / 180.0f),
+                         radar_pos[1] + radar_range * sin(upAngle * M_PI / 180.0f));
+    sf::Vector2f upPos = worldToScreen(upWorld.x, upWorld.y);
+    sf::Vertex upLine[] = {
+        sf::Vertex(pos, sf::Color(0, 255, 0, 127)),
+        sf::Vertex(upPos, sf::Color(0, 255, 0, 127))};
+
+    window.draw(downLine, 2, sf::Lines);
+    window.draw(upLine, 2, sf::Lines);
 }
 
 void Renderer::draw_body(const Body &body,
@@ -108,14 +139,12 @@ void Renderer::draw_body(const Body &body,
     auto pos = body.get_pos();
     sf::Vector2f screenPos = worldToScreen(pos[0], pos[1]);
 
-    sf::Color color = detected ? colors[0] : colors[1];
+    sf::Color color = detected ? colors[0] : sf::Color(0, 255, 0, 50);
 
     sf::CircleShape dot(8);
     dot.setOrigin(8, 8);
     dot.setPosition(screenPos);
     dot.setFillColor(color);
-    dot.setOutlineColor(sf::Color::White);
-    dot.setOutlineThickness(2);
     window.draw(dot);
 
     // Text overlay
@@ -152,9 +181,9 @@ void Renderer::draw_body(const Body &body,
     accStream << std::fixed << "Acc: (" << acc[0] << ", " << acc[1] << ")";
     accelerationText.setString(accStream.str());
 
-    positionText.setPosition(screenPos.x + 12, screenPos.y - 28);
-    velocityText.setPosition(screenPos.x + 12, screenPos.y - 12);
-    accelerationText.setPosition(screenPos.x + 12, screenPos.y + 4);
+    positionText.setPosition(screenPos.x + 12, screenPos.y - 16);
+    velocityText.setPosition(screenPos.x + 12, screenPos.y);
+    accelerationText.setPosition(screenPos.x + 12, screenPos.y + 16);
 
     window.draw(positionText);
     window.draw(velocityText);

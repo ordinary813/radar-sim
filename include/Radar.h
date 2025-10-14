@@ -7,50 +7,59 @@
 #include <vector>
 #include <random>
 
+using namespace std;
+
 struct Detection
 {
     bool detected;
-    float   distance,
-            azimuth,
-            radial_velocity,
-            timestamp;
+    float distance,
+        azimuth,
+        radial_velocity,
+        timestamp;
     int target_id;
 };
 
 class Radar
 {
 private:
-    std::vector<float> pos;
+    vector<float> pos;
     float max_range;
+    float scan_interval;
     float scan_angle;
+    float beam_width;
+
     float distance_noise_std;
     float azimuth_noise_std;
     float velocity_noise_std;
     float detection_prob;
-    float scan_interval;
-    float beam_width;
 
     // Randomness helpers
-    std::default_random_engine generator;
-    std::normal_distribution<float> norm_dist;
-    std::uniform_real_distribution<float> uniform_dist;
+    default_random_engine generator;
+    normal_distribution<float> norm_dist;
+    uniform_real_distribution<float> uniform_dist;
 
     // Decides if the target is detected, considering detection probability and distance
-    bool shouldDetect(float distance);
+    bool shouldDetect(float distance, float azimuth);
 
 public:
-    Radar(std::vector<float> pos, float max_range, float noise_std = 2.0f);
+    Radar(vector<float> pos, float max_range, float scan_interval = 0.25f, float beam_width = 10.0f, float noise_std = 2.0f);
 
-    Detection scan(const Body& target, int target_id, float current_time);
-    std::vector<Detection> scan(const std::vector<Body>& targets, float current_time);
+    void update(float dt);
+    void reset();
+
+    Detection scan(const Body &target, int target_id, float current_time);
+    vector<Detection> scan(const vector<Body> &targets, float current_time);
 
     // Calculation functions
-    float calculateDistance(const Body& target) const;
-    float calculateAzimuth(const Body& target) const;
-    float calculateVelocity(const Body& target) const;
+    float calculateDistance(const Body &target) const;
+    float calculateAzimuth(const Body &target) const;
+    float calculateVelocity(const Body &target) const;
 
-    std::vector<float> get_pos() const { return pos; }
+    vector<float> get_pos() const { return pos; }
     float get_max_range() const { return max_range; }
+    float getScanInterval() const { return scan_interval; }
+    float getScanAngle() const { return scan_angle; }
+    float getBeamWidth() const { return beam_width; }
 };
 
 #endif

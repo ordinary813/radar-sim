@@ -60,5 +60,5 @@ Data will be logged into the `data/` directory.
 
 
 ## Screenshot
-![Radar Screenshot](imgs/radar-screenshot.png)
+![Radar Screenshot](imgs/ver2.png)
 

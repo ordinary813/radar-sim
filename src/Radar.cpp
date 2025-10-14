@@ -5,17 +5,34 @@
 
 using namespace std;
 
-Radar::Radar(vector<float> pos, float max_range, float noise_std)
+Radar::Radar(vector<float> pos, float max_range, float scan_interval, float beam_width, float noise_std)
     : pos(pos),
       max_range(max_range),
+      scan_interval(scan_interval),
+      scan_angle(0.0f),
+      beam_width(beam_width),
       distance_noise_std(noise_std),
       azimuth_noise_std(1.0f),
       velocity_noise_std(0.5f),
       detection_prob(0.95f),
       generator(random_device{}()),
       norm_dist(0.0f, 1.0f),
-      uniform_dist(0.0f, 1.0f) 
-{}
+      uniform_dist(0.0f, 1.0f)
+{
+}
+
+void Radar::update(float dt)
+{
+    float deg = 360.0f * scan_interval * dt;
+    if (deg + scan_angle >= 360)
+        scan_angle -= 360;
+    scan_angle += deg;
+}
+
+void Radar::reset()
+{
+    scan_angle = 0.0f;
+}
 
 float Radar::calculateDistance(const Body &target) const
 {
@@ -30,7 +47,7 @@ float Radar::calculateAzimuth(const Body &target) const
     float dy = target.get_pos()[1] - pos[1];
     float rad = atan2(dy, dx);
     float deg = rad * 180.0f / M_PI;
-    if(deg < 0.0f && deg > -180.0f)
+    if (deg < 0.0f && deg > -180.0f)
         deg += 360;
     return deg;
 }
@@ -39,8 +56,10 @@ float Radar::calculateVelocity(const Body &target) const
 {
     auto vel = target.get_vel();
 
-    float dx = target.get_pos()[0] - pos[0];;
-    float dy = target.get_pos()[1] - pos[1];;
+    float dx = target.get_pos()[0] - pos[0];
+    ;
+    float dy = target.get_pos()[1] - pos[1];
+    ;
     float distance = sqrt(dx * dx + dy * dy);
 
     if (distance < 0.001f)
@@ -53,9 +72,19 @@ float Radar::calculateVelocity(const Body &target) const
     return vel[0] * ux + vel[1] * uy;
 }
 
-bool Radar::shouldDetect(float distance)
+bool Radar::shouldDetect(float distance, float azimuth)
 {
-    // reduce probability  the longer the range, based on sigmoid
+    float degToCompareUp = scan_angle + beam_width / 2;
+    float degToCompareDown = scan_angle - beam_width / 2;
+    if(degToCompareUp >= 360)
+        degToCompareUp -= 360;
+    if(degToCompareDown < 0);
+        degToCompareUp += 360;
+
+    if (azimuth > scan_angle + beam_width / 2 ||
+        azimuth < scan_angle - beam_width / 2)
+        return false;
+    // simulate probability of detection according to range, sigmoid based
     float prob = detection_prob * (2 / (1 + pow(M_E, distance * 0.0001)));
     return (distance < max_range) && (rand() % 100 < detection_prob * 100);
 }
@@ -69,7 +98,7 @@ Detection Radar::scan(const Body &target, int target_id, float current_time)
     float distance = calculateDistance(target);
     float azimuth = calculateAzimuth(target);
     float radial_velocity = calculateVelocity(target);
-    bool isDetected = shouldDetect(distance);
+    bool isDetected = shouldDetect(distance, azimuth);
 
     if (distance <= max_range && isDetected)
     {
@@ -79,7 +108,9 @@ Detection Radar::scan(const Body &target, int target_id, float current_time)
         det.radial_velocity = radial_velocity + norm_dist(generator) * velocity_noise_std;
         if (det.distance < 0)
             det.distance = 0;
-    } else {
+    }
+    else
+    {
         det.detected = false;
         det.distance = 0;
         det.azimuth = 0;
