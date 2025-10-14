@@ -11,7 +11,7 @@ using namespace std;
 
 struct Detection
 {
-    bool detected;
+    bool detected = false;
     float distance,
         azimuth,
         radial_velocity,

@@ -31,9 +31,9 @@ int main()
     vector<Body> targets;
     targets.push_back(Body({0, -25}));
 
-    vector<bool> detected(targets.size(), false);
+    vector<Detection> detected(targets.size());
 
-    Radar radar({0, 0}, 100.0f);
+    Radar radar({10, 25}, 100.0f, 0.5f, 20.0f);
     auto radar_pos = radar.get_pos();
     sf::Vector2f radarScreenPos = renderer.worldToScreen(radar_pos[0], radar_pos[1]);
 
@@ -116,7 +116,10 @@ int main()
             cout << "Detected " << detections.size() << " targets.\n";
 
             // Update detection status
-            fill(detected.begin(), detected.end(), false);
+            for(auto &d: detected)
+            {
+                d.detected = false;
+            }
 
             for (const auto &det : detections)
             {
@@ -130,7 +133,7 @@ int main()
                         << ", Bearing=" << det.azimuth << "°"
                         << ", Velocity=" << det.radial_velocity << "m/s\n";
 
-                detected[det.target_id] = true;
+                detected[det.target_id].detected = true;
             }
 
             next_scan_time += dt;

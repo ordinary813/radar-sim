@@ -21,6 +21,7 @@ Renderer::Renderer(float screen_height,
       world_size(world_size),
       grid_spacing(grid_spacing),
       window(sf::VideoMode(screen_width, screen_height), "Radar Simulation"),
+      worldView(window.getDefaultView()),           // IMPLEMENT VIEW UPDATES, ZOOM
       dt(dt),
       sim_time(0.0f),
       sim_duration(sim_duration),
@@ -134,12 +135,12 @@ void Renderer::draw_radar(const Radar &radar)
 }
 
 void Renderer::draw_body(const Body &body,
-                         bool detected)
+                         Detection detected)
 {
     auto pos = body.get_pos();
     sf::Vector2f screenPos = worldToScreen(pos[0], pos[1]);
 
-    sf::Color color = detected ? colors[0] : sf::Color(0, 255, 0, 50);
+    sf::Color color = detected.detected ? colors[0] : sf::Color(0, 255, 0, 50);
 
     sf::CircleShape dot(8);
     dot.setOrigin(8, 8);
@@ -211,7 +212,7 @@ void Renderer::reset()
     sim_time = 0.0f;
 }
 
-void Renderer::render(const Radar &radar, vector<Body> &targets, vector<bool> &detected)
+void Renderer::render(const Radar &radar, vector<Body> &targets, vector<Detection> &detected)
 {
     window.clear(sf::Color::Black);
     draw_grid();
@@ -221,6 +222,9 @@ void Renderer::render(const Radar &radar, vector<Body> &targets, vector<bool> &d
     {
         draw_body(targets[i], detected[i]);
     }
+
+    sf::View worldView = window.getView();
+    window.setView(window.getDefaultView());
 
     // Text overlay
     stringstream ss;
@@ -237,8 +241,8 @@ void Renderer::render(const Radar &radar, vector<Body> &targets, vector<bool> &d
     window.draw(text);
 
     int detCount = 0;
-    for (bool d : detected)
-        if (d)
+    for (Detection d : detected)
+        if (d.detected)
             detCount++;
 
     text.setString("Detected: " + to_string(detCount) + "/" + to_string(targets.size()));
@@ -252,6 +256,7 @@ void Renderer::render(const Radar &radar, vector<Body> &targets, vector<bool> &d
     text.setPosition(10, window.getSize().y - 20);
     window.draw(text);
 
+    window.setView(worldView);
     window.display();
 }
 

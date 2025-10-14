@@ -27,7 +27,7 @@ public:
     void draw_grid();
     void draw_radar(const Radar &radar);
     void draw_body(const Body &body,
-                   bool detected);
+                   Detection detected);
 
     float get_screen_height();
     float get_screen_width();
@@ -40,7 +40,7 @@ public:
     void render(
         const Radar &radar, 
         vector<Body> &targets, 
-        vector<bool> &detected);
+        vector<Detection> &detected);
 
     void flipPause();
     void setMouseDragging(
@@ -59,6 +59,7 @@ public:
 
 private:
     sf::RenderWindow window;
+    sf::View worldView;
     sf::Font font;
     std::vector<sf::Color> colors;
 
