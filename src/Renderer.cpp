@@ -140,55 +140,71 @@ void Renderer::draw_body(const Body &body,
     auto pos = body.get_pos();
     sf::Vector2f screenPos = worldToScreen(pos[0], pos[1]);
 
-    sf::Color color = detected.detected ? colors[0] : sf::Color(0, 255, 0, 50);
+    sf::Color color;
 
-    sf::CircleShape dot(8);
-    dot.setOrigin(8, 8);
-    dot.setPosition(screenPos);
-    dot.setFillColor(color);
-    window.draw(dot);
+    if(detected.detected)
+    {
+        color = colors[0];
+    }
+    else
+    {
+        float delta = sim_time - detected.timestamp;
+        // if(delta > 1)
+        //     color = sf::Color(0, 255, 0, 15);
+        // else
+            color = sf::Color(0, 255, 0, 255 - tanh(delta)*255);
+    }
 
-    // Text overlay
-    sf::Text positionText;
-    positionText.setFont(font);
-    positionText.setCharacterSize(12);
-    positionText.setFillColor(sf::Color::White);
+    if(detected.detected == true || detected.lifespan > 0)
+    {
+        sf::CircleShape dot(8);
+        dot.setOrigin(8, 8);
+        dot.setPosition(screenPos);
+        dot.setFillColor(color);
+        window.draw(dot);
 
-    sf::Text velocityText;
-    velocityText.setFont(font);
-    velocityText.setCharacterSize(12);
-    velocityText.setFillColor(sf::Color::White);
+        // Text overlay
+        sf::Text positionText;
+        positionText.setFont(font);
+        positionText.setCharacterSize(12);
+        positionText.setFillColor(sf::Color::White);
 
-    sf::Text accelerationText;
-    accelerationText.setFont(font);
-    accelerationText.setCharacterSize(12);
-    accelerationText.setFillColor(sf::Color::White);
+        sf::Text velocityText;
+        velocityText.setFont(font);
+        velocityText.setCharacterSize(12);
+        velocityText.setFillColor(sf::Color::White);
 
-    pos = body.get_pos();
-    std::stringstream posStream;
-    posStream.precision(1);
-    posStream << std::fixed << "Pos: (" << pos[0] << ", " << pos[1] << ")";
-    positionText.setString(posStream.str());
+        sf::Text accelerationText;
+        accelerationText.setFont(font);
+        accelerationText.setCharacterSize(12);
+        accelerationText.setFillColor(sf::Color::White);
 
-    auto vel = body.get_vel();
-    std::stringstream velStream;
-    velStream.precision(1);
-    velStream << std::fixed << "Vel: (" << vel[0] << ", " << vel[1] << ")";
-    velocityText.setString(velStream.str());
+        pos = body.get_pos();
+        std::stringstream posStream;
+        posStream.precision(1);
+        posStream << std::fixed << "Pos: (" << pos[0] << ", " << pos[1] << ")";
+        positionText.setString(posStream.str());
 
-    auto acc = body.get_accel();
-    std::stringstream accStream;
-    accStream.precision(1);
-    accStream << std::fixed << "Acc: (" << acc[0] << ", " << acc[1] << ")";
-    accelerationText.setString(accStream.str());
+        auto vel = body.get_vel();
+        std::stringstream velStream;
+        velStream.precision(1);
+        velStream << std::fixed << "Vel: (" << vel[0] << ", " << vel[1] << ")";
+        velocityText.setString(velStream.str());
 
-    positionText.setPosition(screenPos.x + 12, screenPos.y - 16);
-    velocityText.setPosition(screenPos.x + 12, screenPos.y);
-    accelerationText.setPosition(screenPos.x + 12, screenPos.y + 16);
+        auto acc = body.get_accel();
+        std::stringstream accStream;
+        accStream.precision(1);
+        accStream << std::fixed << "Acc: (" << acc[0] << ", " << acc[1] << ")";
+        accelerationText.setString(accStream.str());
 
-    window.draw(positionText);
-    window.draw(velocityText);
-    window.draw(accelerationText);
+        positionText.setPosition(screenPos.x + 12, screenPos.y - 16);
+        velocityText.setPosition(screenPos.x + 12, screenPos.y);
+        accelerationText.setPosition(screenPos.x + 12, screenPos.y + 16);
+
+        window.draw(positionText);
+        window.draw(velocityText);
+        window.draw(accelerationText);
+    }
 }
 
 float Renderer::get_screen_height() { return screen_height; }
@@ -212,15 +228,16 @@ void Renderer::reset()
     sim_time = 0.0f;
 }
 
-void Renderer::render(const Radar &radar, vector<Body> &targets, vector<Detection> &detected)
+void Renderer::render(const Radar &radar, vector<Body> &targets, vector<Detection> &detections)
 {
     window.clear(sf::Color::Black);
     draw_grid();
     draw_radar(radar);
 
+    // right now this is an issue - need to decide on how to store targets and detections
     for (size_t i = 0; i < targets.size(); i++)
     {
-        draw_body(targets[i], detected[i]);
+        draw_body(targets[i], detections[i]);
     }
 
     sf::View worldView = window.getView();
@@ -241,7 +258,7 @@ void Renderer::render(const Radar &radar, vector<Body> &targets, vector<Detectio
     window.draw(text);
 
     int detCount = 0;
-    for (Detection d : detected)
+    for (Detection d : detections)
         if (d.detected)
             detCount++;
 

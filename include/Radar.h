@@ -17,6 +17,7 @@ struct Detection
         radial_velocity,
         timestamp;
     int target_id;
+    float lifespan;
 };
 
 class Radar
@@ -33,6 +34,8 @@ private:
     float velocity_noise_std;
     float detection_prob;
 
+    vector<Detection> detections;
+
     // Randomness helpers
     default_random_engine generator;
     normal_distribution<float> norm_dist;
@@ -47,7 +50,9 @@ public:
     void update(float dt);
     void reset();
 
+    
     Detection scan(const Body &target, int target_id, float current_time);
+    bool checkDetection(Detection detection, float azimuth_threshold = 1.5f, float distance_threshold = 2.5f);
     vector<Detection> scan(const vector<Body> &targets, float current_time);
 
     // Calculation functions
@@ -60,6 +65,7 @@ public:
     float getScanInterval() const { return scan_interval; }
     float getScanAngle() const { return scan_angle; }
     float getBeamWidth() const { return beam_width; }
+    vector<Detection> getDetections() { return detections; }
 };
 
 #endif

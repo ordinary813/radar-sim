@@ -40,7 +40,7 @@ public:
     void render(
         const Radar &radar, 
         vector<Body> &targets, 
-        vector<Detection> &detected);
+        vector<Detection> &detections);
 
     void flipPause();
     void setMouseDragging(

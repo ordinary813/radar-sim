@@ -18,7 +18,7 @@ public:
     std::vector<float> get_accel() const { return accel; }
 
     friend std::ostream& operator<<(std::ostream& os, const Body& body);
-
+    
 private:
     std::vector<float> pos;
     std::vector<float> vel;

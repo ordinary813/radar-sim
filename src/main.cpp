@@ -22,8 +22,6 @@ int main()
     const float GRID_SPACING = 10.0f;
     
     float dt = 0.016f;
-    float scan_interval = 1.0f;
-    float next_scan_time = 0.0f;
     
     Renderer renderer(SCREEN_SIZE, SCREEN_SIZE, WORLD_SIZE, dt);
     
@@ -33,7 +31,12 @@ int main()
 
     vector<Detection> detected(targets.size());
 
-    Radar radar({10, 25}, 100.0f, 0.5f, 20.0f);
+    const vector<float> RADAR_POS = {0, 0};
+    const float MAX_RANGE = 100.0f;
+    const float SCAN_INTERVAL = 0.5f;
+    const float BEAM_WIDTH = 50.0f;
+
+    Radar radar(RADAR_POS, MAX_RANGE, SCAN_INTERVAL, BEAM_WIDTH);
     auto radar_pos = radar.get_pos();
     sf::Vector2f radarScreenPos = renderer.worldToScreen(radar_pos[0], radar_pos[1]);
 
@@ -57,9 +60,10 @@ int main()
                 {
                     renderer.reset();
                     radar.reset();
-                    next_scan_time = 0.0f;
                     targets.clear();
                     targets.push_back(Body({0, 0}, {5, 5}));
+                    targets.push_back(Body({10, 0}));
+                    targets.push_back(Body({-25, -10}, {5, 5}, {1,1}));
                 }
             }
             if (event.type == sf::Event::MouseButtonPressed)
@@ -108,26 +112,25 @@ int main()
             }
             radar.update(dt);
 
-            float updated_sim_time = renderer.advanceSimTime();
+            float current_sim_time = renderer.advanceSimTime();
 
-            cout << "\n=== Scan at t=" << fixed << setprecision(1) << updated_sim_time << "s ===\n";
+            cout << "\n=== Scan at t=" << fixed << setprecision(1) << current_sim_time << "s ===\n";
 
-            auto detections = radar.scan(targets, updated_sim_time);
-            cout << "Detected " << detections.size() << " targets.\n";
+            // NEED TO FIX SCAN, the radar shouldnt get all targets and decide which ones fits in the cone,
+            // the simulation gets a scan request from the radar and return only the targets within the cone, then
+            // return a detection/body list to the radar
+            auto curr_detections = radar.scan(targets, current_sim_time);
+            cout << "Detected " << curr_detections.size() << " targets.\n";
 
-            // Update detection status
+            // Reset detection status
             for(auto &d: detected)
             {
                 d.detected = false;
             }
 
-            for (const auto &det : detections)
+            // Log detections
+            for (const auto &det : curr_detections)
             {
-                auto tgt_pos = targets[det.target_id].get_pos();
-                float dx = tgt_pos[0] - radar_pos[0];
-                float dy = tgt_pos[1] - radar_pos[1];
-                float true_distance = sqrt(dx * dx + dy * dy);
-
                 cout << "  Target " << det.target_id
                         << ": Distance=" << det.distance << "m"
                         << ", Bearing=" << det.azimuth << "°"
@@ -135,12 +138,9 @@ int main()
 
                 detected[det.target_id].detected = true;
             }
-
-            next_scan_time += dt;
-            
         }
-
-        renderer.render(radar, targets, detected);
+        vector<Detection> curr_detections = radar.getDetections();
+        renderer.render(radar, targets, curr_detections);
     }
     return 0;
 }
